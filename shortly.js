@@ -2,6 +2,9 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
+var url = require('url');
 
 
 var db = require('./app/config');
@@ -20,24 +23,50 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(cookieParser('shhhh, very secret'));
+app.use(session());
 app.use(express.static(__dirname + '/public'));
 
 
+var restrict = function (req, res, next) {
+  console.log(req.url);
+  var path = req.url;
+  if(req.session.user){
+    res.redirect(path);
+  }else{
+    res.render('login');
+  }
+}
+
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  if(req.session.user){
+    res.render('index');
+  }else{
+    res.redirect('/login');
+  }
 });
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  if(req.session.user){
+    res.render('index');
+  }else{
+    res.redirect('/login');
+  }
 });
 
-app.get('/links', 
+app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
-  });
+  if(req.session.user){
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+    // res.render('index');
+  }else{
+    res.redirect('/login');
+  }
 });
 
 app.post('/links', 
@@ -78,7 +107,63 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+ 
+app.get('/login', function(req, res) {
+  if(req.session.user){
+    res.redirect('/');
+  }else{
+    res.render('login');
+  }
+});
 
+app.post('/login', function(request, response) {
+ 
+    var username = request.body.username;
+    var password = request.body.password;
+ 
+    if(username == 'demo' && password == 'demo'){
+        request.session.regenerate(function(){
+        request.session.user = username;
+        response.render('index');
+        });
+    }
+    else {
+       response.redirect('/signup');
+    }    
+});
+ 
+app.get('/logout', function(request, response){
+    request.session.destroy(function(){
+        response.redirect('/');
+    });
+});
+ 
+app.get('/signup', function(request, response){
+  response.render('signup');
+});
+
+app.post('/signup', function(req, res) {
+
+  var username = req.body.username;
+  var password = req.body.password;
+  new User({username : username}).fetch().then(function(found){
+    if (found) {
+      console.log('Ohh no you didnt')
+      res.send(200, found.attributes);
+    } else {
+      var user = new User({
+          username: username,
+          password: password
+        });
+
+      user.save().then(function(newUser) {
+        Users.add(newUser);
+        res.send(200, newUser);
+      });
+    }
+  });
+ 
+});
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
@@ -110,3 +195,7 @@ app.get('/*', function(req, res) {
 
 console.log('Shortly is listening on 4568');
 app.listen(4568);
+
+
+
+
