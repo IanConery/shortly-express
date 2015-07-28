@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var url = require('url');
+var bcrypt = require('bcrypt-nodejs');
 
 
 var db = require('./app/config');
@@ -120,16 +121,24 @@ app.post('/login', function(request, response) {
  
     var username = request.body.username;
     var password = request.body.password;
- 
-    if(username == 'demo' && password == 'demo'){
-        request.session.regenerate(function(){
-        request.session.user = username;
-        response.render('index');
+    var response = response;
+
+    new User({username: username}).fetch().then(function(found){
+      if (found) {
+        bcrypt.compare(password, found.attributes.password, function(err, res) {
+          if(err) {response.redirect('/login');}
+          console.log('logged in');
+          console.log(request.session.user);
+            // res.session.user = username;
+            response.redirect('/');
+          // request.session.regenerate(function(){
+          // });
         });
-    }
-    else {
-       response.redirect('/signup');
-    }    
+      }else {
+        console.log('incorrect login')
+        response.redirect('/signup');
+      }
+    });   
 });
  
 app.get('/logout', function(request, response){
@@ -146,7 +155,8 @@ app.post('/signup', function(req, res) {
 
   var username = req.body.username;
   var password = req.body.password;
-  new User({username : username}).fetch().then(function(found){
+  
+  new User({username: username}).fetch().then(function(found){
     if (found) {
       console.log('Ohh no you didnt')
       res.send(200, found.attributes);
@@ -158,7 +168,9 @@ app.post('/signup', function(req, res) {
 
       user.save().then(function(newUser) {
         Users.add(newUser);
-        res.send(200, newUser);
+        res.redirect('/login');
+        console.log('kenny loggins');
+        res.end();
       });
     }
   });
