@@ -64,7 +64,6 @@ function(req, res) {
     Links.reset().fetch().then(function(links) {
       res.send(200, links.models);
     });
-    // res.render('index');
   }else{
     res.redirect('/login');
   }
@@ -79,7 +78,7 @@ function(req, res) {
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  new Link({ url: uri }).fetch().then(function(found) { //tried {withRelated: ['user_id']} in fetch but didn't work
     if (found) {
       res.send(200, found.attributes);
     } else {
@@ -88,13 +87,18 @@ function(req, res) {
           console.log('Error reading URL heading: ', err);
           return res.send(404);
         }
-
         var link = new Link({
           url: uri,
           title: title,
           base_url: req.headers.origin
+          // user_id: user.get('id')
         });
-
+        //   } else {
+        //     res.redirect('/');
+        //   }
+          
+        // });
+        
         link.save().then(function(newLink) {
           Links.add(newLink);
           res.send(200, newLink);
@@ -125,21 +129,15 @@ app.post('/login', function(request, response) {
 
     new User({username: username}).fetch().then(function(found){
       if (found) {
-        bcrypt.compare(password, found.attributes.password, function(err, res) {
-          console.log(password, found.attributes.password)
-          if(err) {console.log('ERROR ERROR');response.redirect('/login');}
-          console.log('logged in');
-          console.log(res);
-          passVal = true;
-          // request.session.regenerate(function(){
-          // });
-        });
-        if(passVal === true){
-            response.session.user = username;
-            console.log('response', response);
-            response.redirect('/');
+        console.log(password, found.attributes.password);
+        if(util.decryptPassword(password,found.attributes.password)){
+          request.session.user = username;
+          response.redirect('/');
+        } else {
+          console.log('incorrect login')
+          response.redirect('/signup');
         }
-      }else {
+      } else {
         console.log('incorrect login')
         response.redirect('/signup');
       }
@@ -168,13 +166,13 @@ app.post('/signup', function(req, res) {
     } else {
       var user = new User({
           username: username,
-          password: password
+          password: util.encryptPassword(password)
         });
+
 
       user.save().then(function(newUser) {
         Users.add(newUser);
         res.redirect('/login');
-        console.log('kenny loggins');
         res.end();
       });
     }

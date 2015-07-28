@@ -5,21 +5,27 @@ var Link = require('./link');
 
 var User = db.Model.extend({
   tableName: 'users',
-  /*links: function(){
+  links: function(){
     return this.hasMany(Link);
-  },*/
-  initialize: function(){
+  }
+  /*initialize: function(){
     this.on('creating', function(model, attrs, options){
-      bcrypt.genSalt(8, function(err, salt){
+      bcrypt.genSaltSync(8, function(err, salt){
         if(err){console.log('initialize error')}
         bcrypt.hash(attrs.password, salt,null, function(err, hash){
+          console.log(attrs.password);
           if(err){console.log('BCRYPT ERROR')}
           model.set({password: hash});
-            console.log(model.get('password'));
+            console.log('user: ',model.get('username'));
+            console.log('password: ',model.get('password'));
         });
       });
-    });
-  }
+  */  // var salt = bcrypt.genSaltSync(10);
+    // var hash = bcrypt.hashSync(model.password/*, salt);
+    // console.log(hash);
+    // model.set({password: hash});
+    //});
+  //}*/
 });
 
 module.exports = User;
