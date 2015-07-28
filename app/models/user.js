@@ -10,13 +10,12 @@ var User = db.Model.extend({
   },*/
   initialize: function(){
     this.on('creating', function(model, attrs, options){
-      console.log('hello from the model')
       bcrypt.genSalt(8, function(err, salt){
         if(err){console.log('initialize error')}
         bcrypt.hash(attrs.password, salt,null, function(err, hash){
           if(err){console.log('BCRYPT ERROR')}
-          console.log('INSIDE INIT' + '\n' + model, attrs, options)
-          model.set('password', hash);
+          model.set({password: hash});
+            console.log(model.get('password'));
         });
       });
     });

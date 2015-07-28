@@ -121,19 +121,24 @@ app.post('/login', function(request, response) {
  
     var username = request.body.username;
     var password = request.body.password;
-    var response = response;
+    var passVal = false;
 
     new User({username: username}).fetch().then(function(found){
       if (found) {
         bcrypt.compare(password, found.attributes.password, function(err, res) {
-          if(err) {response.redirect('/login');}
+          console.log(password, found.attributes.password)
+          if(err) {console.log('ERROR ERROR');response.redirect('/login');}
           console.log('logged in');
-          console.log(request.session.user);
-            // res.session.user = username;
-            response.redirect('/');
+          console.log(res);
+          passVal = true;
           // request.session.regenerate(function(){
           // });
         });
+        if(passVal === true){
+            response.session.user = username;
+            console.log('response', response);
+            response.redirect('/');
+        }
       }else {
         console.log('incorrect login')
         response.redirect('/signup');
