@@ -60,11 +60,20 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  if(req.session.user){
-    Links.reset().fetch().then(function(links) {
-      res.send(200, links.models);
-    });
-  }else{
+  var username = req.session.user
+  if(username){
+    new User({username: username}).fetch().then(function(found) {
+      var userid = found.attributes.id;
+      Links.query('where','user_id','=',found.attributes.id).fetch().then(function(found) {
+        if (found) {
+          console.log(found.models);
+          res.send(200, found.models);
+        } else {
+          res.redirect('/');
+        }
+      });
+    });  
+  } else {
     res.redirect('/login');
   }
 });
@@ -78,33 +87,35 @@ function(req, res) {
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) { //tried {withRelated: ['user_id']} in fetch but didn't work
-    if (found) {
-      res.send(200, found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.send(404);
-        }
-        var link = new Link({
-          url: uri,
-          title: title,
-          base_url: req.headers.origin
-          // user_id: user.get('id')
+  var username = req.session.user;
+
+  new User({username: username}).fetch().then(function(found) {
+    var userid = found.attributes.id;
+
+    console.log('userid: ' + userid);
+    new Link({ url: uri, user_id: found.attributes.id}).fetch().then(function(found) { //tried {withRelated: ['user_id']} in fetch but didn't work
+      if (found) {
+        res.send(200, found.attributes);
+      } else {
+        util.getUrlTitle(uri, function(err, title) {
+          if (err) {
+            console.log('Error reading URL heading: ', err);
+            return res.send(404);
+          }
+          var link = new Link({
+            url: uri,
+            title: title,
+            base_url: req.headers.origin,
+            user_id: userid
+          });
+      
+          link.save().then(function(newLink) {
+            Links.add(newLink);
+            res.send(200, newLink);
+          });
         });
-        //   } else {
-        //     res.redirect('/');
-        //   }
-          
-        // });
-        
-        link.save().then(function(newLink) {
-          Links.add(newLink);
-          res.send(200, newLink);
-        });
-      });
-    }
+      }
+    });
   });
 });
 
